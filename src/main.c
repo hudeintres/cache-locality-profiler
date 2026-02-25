@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <math.h>
 #include "profiler.h"
 #include "matrix.h"
 
@@ -60,6 +61,31 @@ void test_matrix_multiplication(int size, int block_size, Profiler* profiler) {
     
     if (result_blocked != 0) {
         fprintf(stderr, "Cache-blocked matrix multiplication failed\n");
+    }
+    
+    // Sanity check: compare results across methods
+    double max_diff_transpose = 0.0;
+    double max_diff_blocked = 0.0;
+    for (int i = 0; i < size * size; i++) {
+        double naive_val = C_naive->data[i];
+        double transpose_val = C_transpose->data[i];
+        double blocked_val = C_blocked->data[i];
+        
+        double diff_transpose = fabs(naive_val - transpose_val);
+        double diff_blocked = fabs(naive_val - blocked_val);
+        
+        if (diff_transpose > max_diff_transpose) {
+            max_diff_transpose = diff_transpose;
+        }
+        if (diff_blocked > max_diff_blocked) {
+            max_diff_blocked = diff_blocked;
+        }
+    }
+    
+    const double tolerance = 1e-9;
+    if (max_diff_transpose > tolerance || max_diff_blocked > tolerance) {
+        fprintf(stderr, "Sanity check failed for size %dx%d: max diff transpose=%.6e, blocked=%.6e\n",
+                size, size, max_diff_transpose, max_diff_blocked);
     }
     
     // Cleanup
