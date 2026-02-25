@@ -13,10 +13,11 @@ void test_matrix_multiplication(int size, Profiler* profiler) {
     Matrix* A = matrix_create(size, size);
     Matrix* B = matrix_create(size, size);
     Matrix* C_naive = matrix_create(size, size);
-    Matrix* C_opt = matrix_create(size, size);
+    Matrix* C_transpose = matrix_create(size, size);
+    Matrix* C_blocked = matrix_create(size, size);
     profiler_end(profiler, label);
     
-    if (!A || !B || !C_naive || !C_opt) {
+    if (!A || !B || !C_naive || !C_transpose || !C_blocked) {
         fprintf(stderr, "Failed to allocate matrices\n");
         return;
     }
@@ -27,7 +28,8 @@ void test_matrix_multiplication(int size, Profiler* profiler) {
     matrix_randomize(A);
     matrix_randomize(B);
     matrix_zeros(C_naive);
-    matrix_zeros(C_opt);
+    matrix_zeros(C_transpose);
+    matrix_zeros(C_blocked);
     profiler_end(profiler, label);
     
     // Perform naive multiplication
@@ -40,14 +42,24 @@ void test_matrix_multiplication(int size, Profiler* profiler) {
         fprintf(stderr, "Naive matrix multiplication failed\n");
     }
     
-    // Perform optimized multiplication (transpose B)
+    // Perform transpose-optimized multiplication
     snprintf(label, sizeof(label), "matrix_multiply_transpose_%dx%d", size, size);
     profiler_start(profiler, label);
-    int result_opt = matrix_multiply_transpose(A, B, C_opt);
+    int result_transpose = matrix_multiply_transpose(A, B, C_transpose);
     profiler_end(profiler, label);
     
-    if (result_opt != 0) {
-        fprintf(stderr, "Optimized matrix multiplication failed\n");
+    if (result_transpose != 0) {
+        fprintf(stderr, "Transpose-optimized matrix multiplication failed\n");
+    }
+    
+    // Perform cache-blocked multiplication
+    snprintf(label, sizeof(label), "matrix_multiply_blocked_%dx%d", size, size);
+    profiler_start(profiler, label);
+    int result_blocked = matrix_multiply_blocked(A, B, C_blocked);
+    profiler_end(profiler, label);
+    
+    if (result_blocked != 0) {
+        fprintf(stderr, "Cache-blocked matrix multiplication failed\n");
     }
     
     // Cleanup
@@ -56,7 +68,8 @@ void test_matrix_multiplication(int size, Profiler* profiler) {
     matrix_free(A);
     matrix_free(B);
     matrix_free(C_naive);
-    matrix_free(C_opt);
+    matrix_free(C_transpose);
+    matrix_free(C_blocked);
     profiler_end(profiler, label);
 }
 
@@ -66,6 +79,11 @@ int main(int argc, char* argv[]) {
     
     printf("Matrix Multiplication Profiling\n");
     printf("================================\n\n");
+    
+    // Print cache line size info
+    int cache_line_size = get_cache_line_size();
+    printf("System cache line size: %d bytes\n", cache_line_size);
+    printf("Elements per cache line (double): %zu\n\n", cache_line_size / sizeof(double));
     
     // Test with different matrix sizes
     int sizes[] = {64, 128, 256, 512};

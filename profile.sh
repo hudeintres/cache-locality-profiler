@@ -43,7 +43,7 @@ if [ -f "profile_results.csv" ]; then
     echo "Matrix Multiplication Only (sorted by size):"
     echo "----------------------------------------------"
     
-    # Extract multiplication times (naive vs transpose)
+    # Extract multiplication times (naive vs transpose vs blocked)
     echo "Naive multiplication:"
     grep "matrix_multiply_naive" profile_results.csv | while IFS=',' read -r section time_ms; do
         # Extract size from section name
@@ -54,6 +54,14 @@ if [ -f "profile_results.csv" ]; then
     echo ""
     echo "Transpose-optimized multiplication:"
     grep "matrix_multiply_transpose" profile_results.csv | while IFS=',' read -r section time_ms; do
+        # Extract size from section name
+        size=$(echo "$section" | grep -oP '\d+x\d+' | head -1)
+        printf "Size %s: %10.4f ms\n" "$size" "$time_ms"
+    done
+    
+    echo ""
+    echo "Cache-blocked multiplication (tiling):"
+    grep "matrix_multiply_blocked" profile_results.csv | while IFS=',' read -r section time_ms; do
         # Extract size from section name
         size=$(echo "$section" | grep -oP '\d+x\d+' | head -1)
         printf "Size %s: %10.4f ms\n" "$size" "$time_ms"

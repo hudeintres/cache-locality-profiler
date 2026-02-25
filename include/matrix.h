@@ -37,4 +37,11 @@ int matrix_multiply_naive(Matrix* A, Matrix* B, Matrix* C);
 // Returns 0 on success, -1 on dimension mismatch
 int matrix_multiply_transpose(Matrix* A, Matrix* B, Matrix* C);
 
+// Cache-blocked matrix multiplication using tiling
+// Returns 0 on success, -1 on dimension mismatch
+int matrix_multiply_blocked(Matrix* A, Matrix* B, Matrix* C);
+
+// Get cache line size (returns 64 as default if detection fails)
+int get_cache_line_size(void);
+
 #endif // MATRIX_H

@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
+#include <unistd.h>
 
 Matrix* matrix_create(int rows, int cols) {
     Matrix* m = (Matrix*)malloc(sizeof(Matrix));
@@ -136,5 +137,76 @@ int matrix_multiply_transpose(Matrix* A, Matrix* B, Matrix* C) {
     }
     
     matrix_free(B_T);
+    return 0;
+}
+
+// Get cache line size from system
+// Returns 64 as default if detection fails
+int get_cache_line_size(void) {
+    long cache_line_size = sysconf(_SC_LEVEL1_DCACHE_LINESIZE);
+    if (cache_line_size <= 0) {
+        // Default to 64 bytes (most common)
+        cache_line_size = 64;
+    }
+    return (int)cache_line_size;
+}
+
+// Cache-blocked matrix multiplication using tiling
+// Optimizes for cache line size to maximize data reuse
+int matrix_multiply_blocked(Matrix* A, Matrix* B, Matrix* C) {
+    // Check dimensions: A (M x N) * B (N x P) = C (M x P)
+    if (!A || !B || !C) return -1;
+    if (A->cols != B->rows) return -1;
+    if (C->rows != A->rows || C->cols != B->cols) return -1;
+    
+    int M = A->rows;
+    int N = A->cols;
+    int P = B->cols;
+    
+    // Get cache line size and calculate block size
+    int cache_line_size = get_cache_line_size();
+    // doubles are 8 bytes, so elements per cache line = cache_line_size / 8
+    int elements_per_line = cache_line_size / sizeof(double);
+    
+    // Use block size that fits well in cache
+    // A common approach: block size such that 3 blocks fit in L1 cache
+    // Assuming 32KB L1 cache: 3 * BLOCK^2 * 8 bytes <= 32KB
+    // BLOCK <= sqrt(32768 / 24) ~= 37, so we use 32 or 64
+    int BLOCK = elements_per_line;
+    if (BLOCK < 16) BLOCK = 16;
+    if (BLOCK > 64) BLOCK = 64;
+    
+    // Initialize C to zeros first
+    matrix_zeros(C);
+    
+    // Blocked/tiled matrix multiplication
+    // Process sub-blocks that fit in cache for better locality
+    for (int ii = 0; ii < M; ii += BLOCK) {
+        int i_max = (ii + BLOCK < M) ? ii + BLOCK : M;
+        
+        for (int jj = 0; jj < P; jj += BLOCK) {
+            int j_max = (jj + BLOCK < P) ? jj + BLOCK : P;
+            
+            for (int kk = 0; kk < N; kk += BLOCK) {
+                int k_max = (kk + BLOCK < N) ? kk + BLOCK : N;
+                
+                // Multiply current blocks: C[ii:i_max][jj:j_max] += 
+                //   A[ii:i_max][kk:k_max] * B[kk:k_max][jj:j_max]
+                for (int i = ii; i < i_max; i++) {
+                    for (int j = jj; j < j_max; j++) {
+                        double sum = matrix_get(C, i, j);
+                        
+                        // Inner loop - process cache-friendly block
+                        for (int k = kk; k < k_max; k++) {
+                            sum += matrix_get(A, i, k) * matrix_get(B, k, j);
+                        }
+                        
+                        matrix_set(C, i, j, sum);
+                    }
+                }
+            }
+        }
+    }
+    
     return 0;
 }
