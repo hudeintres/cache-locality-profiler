@@ -99,3 +99,42 @@ int matrix_multiply_naive(Matrix* A, Matrix* B, Matrix* C) {
     
     return 0;
 }
+
+// Optimized matrix multiplication using transposed B for better cache locality
+int matrix_multiply_transpose(Matrix* A, Matrix* B, Matrix* C) {
+    // Check dimensions: A (M x N) * B (N x P) = C (M x P)
+    if (!A || !B || !C) return -1;
+    if (A->cols != B->rows) return -1;
+    if (C->rows != A->rows || C->cols != B->cols) return -1;
+    
+    int M = A->rows;
+    int N = A->cols;
+    int P = B->cols;
+    
+    // Create transposed matrix of B (B_T is P x N)
+    Matrix* B_T = matrix_create(P, N);
+    if (!B_T) return -1;
+    
+    // Transpose B into B_T
+    for (int i = 0; i < B->rows; i++) {
+        for (int j = 0; j < B->cols; j++) {
+            matrix_set(B_T, j, i, matrix_get(B, i, j));
+        }
+    }
+    
+    // Multiply A * B using transposed B
+    // This makes inner loop access contiguous memory in both matrices
+    for (int i = 0; i < M; i++) {
+        for (int j = 0; j < P; j++) {
+            double sum = 0.0;
+            for (int k = 0; k < N; k++) {
+                // A row access is contiguous, B_T row access is contiguous
+                sum += matrix_get(A, i, k) * matrix_get(B_T, j, k);
+            }
+            matrix_set(C, i, j, sum);
+        }
+    }
+    
+    matrix_free(B_T);
+    return 0;
+}

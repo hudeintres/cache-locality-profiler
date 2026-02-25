@@ -33,4 +33,8 @@ void matrix_print(Matrix* m);
 // Returns 0 on success, -1 on dimension mismatch
 int matrix_multiply_naive(Matrix* A, Matrix* B, Matrix* C);
 
+// Optimized matrix multiplication using transposed B
+// Returns 0 on success, -1 on dimension mismatch
+int matrix_multiply_transpose(Matrix* A, Matrix* B, Matrix* C);
+
 #endif // MATRIX_H

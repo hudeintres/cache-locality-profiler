@@ -12,10 +12,11 @@ void test_matrix_multiplication(int size, Profiler* profiler) {
     profiler_start(profiler, label);
     Matrix* A = matrix_create(size, size);
     Matrix* B = matrix_create(size, size);
-    Matrix* C = matrix_create(size, size);
+    Matrix* C_naive = matrix_create(size, size);
+    Matrix* C_opt = matrix_create(size, size);
     profiler_end(profiler, label);
     
-    if (!A || !B || !C) {
+    if (!A || !B || !C_naive || !C_opt) {
         fprintf(stderr, "Failed to allocate matrices\n");
         return;
     }
@@ -25,17 +26,28 @@ void test_matrix_multiplication(int size, Profiler* profiler) {
     profiler_start(profiler, label);
     matrix_randomize(A);
     matrix_randomize(B);
-    matrix_zeros(C);
+    matrix_zeros(C_naive);
+    matrix_zeros(C_opt);
     profiler_end(profiler, label);
     
     // Perform naive multiplication
     snprintf(label, sizeof(label), "matrix_multiply_naive_%dx%d", size, size);
     profiler_start(profiler, label);
-    int result = matrix_multiply_naive(A, B, C);
+    int result_naive = matrix_multiply_naive(A, B, C_naive);
     profiler_end(profiler, label);
     
-    if (result != 0) {
-        fprintf(stderr, "Matrix multiplication failed\n");
+    if (result_naive != 0) {
+        fprintf(stderr, "Naive matrix multiplication failed\n");
+    }
+    
+    // Perform optimized multiplication (transpose B)
+    snprintf(label, sizeof(label), "matrix_multiply_transpose_%dx%d", size, size);
+    profiler_start(profiler, label);
+    int result_opt = matrix_multiply_transpose(A, B, C_opt);
+    profiler_end(profiler, label);
+    
+    if (result_opt != 0) {
+        fprintf(stderr, "Optimized matrix multiplication failed\n");
     }
     
     // Cleanup
@@ -43,7 +55,8 @@ void test_matrix_multiplication(int size, Profiler* profiler) {
     profiler_start(profiler, label);
     matrix_free(A);
     matrix_free(B);
-    matrix_free(C);
+    matrix_free(C_naive);
+    matrix_free(C_opt);
     profiler_end(profiler, label);
 }
 
