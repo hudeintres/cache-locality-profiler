@@ -5,7 +5,7 @@
 #include "matrix.h"
 
 // Test matrix multiplication with profiling
-void test_matrix_multiplication(int size, Profiler* profiler) {
+void test_matrix_multiplication(int size, int block_size, Profiler* profiler) {
     char label[64];
     
     snprintf(label, sizeof(label), "matrix_create_%dx%d", size, size);
@@ -52,10 +52,10 @@ void test_matrix_multiplication(int size, Profiler* profiler) {
         fprintf(stderr, "Transpose-optimized matrix multiplication failed\n");
     }
     
-    // Perform cache-blocked multiplication
+    // Perform cache-blocked multiplication (block_size pre-calculated)
     snprintf(label, sizeof(label), "matrix_multiply_blocked_%dx%d", size, size);
     profiler_start(profiler, label);
-    int result_blocked = matrix_multiply_blocked(A, B, C_blocked);
+    int result_blocked = matrix_multiply_blocked(A, B, C_blocked, block_size);
     profiler_end(profiler, label);
     
     if (result_blocked != 0) {
@@ -80,10 +80,24 @@ int main(int argc, char* argv[]) {
     printf("Matrix Multiplication Profiling\n");
     printf("================================\n\n");
     
-    // Print cache line size info
+    // Get cache info BEFORE starting any timers
     int cache_line_size = get_cache_line_size();
+    int l1_cache_size = get_l1_cache_size();
+    
+    // Calculate optimal block size for cache-blocked multiplication
+    // BLOCK^2 * 4 * sizeof(double) <= L1_cache_size (accounting for 4 arrays in working set)
+    int max_elements = l1_cache_size / (4 * sizeof(double));
+    int block_size = 1;
+    while (block_size * block_size <= max_elements && block_size < 128) {
+        block_size *= 2;
+    }
+    block_size /= 2;
+    if (block_size < 16) block_size = 16;
+    
     printf("System cache line size: %d bytes\n", cache_line_size);
-    printf("Elements per cache line (double): %zu\n\n", cache_line_size / sizeof(double));
+    printf("L1 data cache size: %d bytes (%d KB)\n", l1_cache_size, l1_cache_size / 1024);
+    printf("Elements per cache line (double): %zu\n", cache_line_size / sizeof(double));
+    printf("Optimal block size for tiling: %d x %d\n\n", block_size, block_size);
     
     // Test with different matrix sizes
     int sizes[] = {64, 128, 256, 512};
@@ -98,7 +112,7 @@ int main(int argc, char* argv[]) {
                size, size, iterations);
         
         for (int i = 0; i < iterations; i++) {
-            test_matrix_multiplication(size, &profiler);
+            test_matrix_multiplication(size, block_size, &profiler);
         }
     }
     

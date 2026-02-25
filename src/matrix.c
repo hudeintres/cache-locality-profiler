@@ -151,9 +151,21 @@ int get_cache_line_size(void) {
     return (int)cache_line_size;
 }
 
+// Get L1 data cache size from system
+// Returns 32768 (32KB) as default if detection fails
+int get_l1_cache_size(void) {
+    long cache_size = sysconf(_SC_LEVEL1_DCACHE_SIZE);
+    if (cache_size <= 0) {
+        // Default to 32KB (common L1 size)
+        cache_size = 32768;
+    }
+    return (int)cache_size;
+}
+
 // Cache-blocked matrix multiplication using tiling
-// Optimizes for cache line size to maximize data reuse
-int matrix_multiply_blocked(Matrix* A, Matrix* B, Matrix* C) {
+// Optimizes for cache size to maximize data reuse
+// block_size: size of sub-blocks (0 = auto-calculate optimal)
+int matrix_multiply_blocked(Matrix* A, Matrix* B, Matrix* C, int block_size) {
     // Check dimensions: A (M x N) * B (N x P) = C (M x P)
     if (!A || !B || !C) return -1;
     if (A->cols != B->rows) return -1;
@@ -163,45 +175,51 @@ int matrix_multiply_blocked(Matrix* A, Matrix* B, Matrix* C) {
     int N = A->cols;
     int P = B->cols;
     
-    // Get cache line size and calculate block size
-    int cache_line_size = get_cache_line_size();
-    // doubles are 8 bytes, so elements per cache line = cache_line_size / 8
-    int elements_per_line = cache_line_size / sizeof(double);
-    
-    // Use block size that fits well in cache
-    // A common approach: block size such that 3 blocks fit in L1 cache
-    // Assuming 32KB L1 cache: 3 * BLOCK^2 * 8 bytes <= 32KB
-    // BLOCK <= sqrt(32768 / 24) ~= 37, so we use 32 or 64
-    int BLOCK = elements_per_line;
-    if (BLOCK < 16) BLOCK = 16;
-    if (BLOCK > 64) BLOCK = 64;
+    // Calculate optimal block size if not provided
+    int BLOCK;
+    if (block_size <= 0) {
+        int l1_size = get_l1_cache_size();
+        int max_elements = l1_size / (4 * sizeof(double));
+        BLOCK = 1;
+        while (BLOCK * BLOCK <= max_elements && BLOCK < 128) {
+            BLOCK *= 2;
+        }
+        BLOCK /= 2;
+        if (BLOCK < 16) BLOCK = 16;
+    } else {
+        BLOCK = block_size;
+    }
     
     // Initialize C to zeros first
     matrix_zeros(C);
     
-    // Blocked/tiled matrix multiplication
-    // Process sub-blocks that fit in cache for better locality
+    // Direct pointer access for performance
+    double* a_data = A->data;
+    double* b_data = B->data;
+    double* c_data = C->data;
+    int a_stride = A->cols;
+    int b_stride = B->cols;
+    int c_stride = C->cols;
+    
+    // Blocked/tiled matrix multiplication with i-k-j ordering
+    // This gives contiguous access to both A and B within blocks
     for (int ii = 0; ii < M; ii += BLOCK) {
         int i_max = (ii + BLOCK < M) ? ii + BLOCK : M;
         
-        for (int jj = 0; jj < P; jj += BLOCK) {
-            int j_max = (jj + BLOCK < P) ? jj + BLOCK : P;
+        for (int kk = 0; kk < N; kk += BLOCK) {
+            int k_max = (kk + BLOCK < N) ? kk + BLOCK : N;
             
-            for (int kk = 0; kk < N; kk += BLOCK) {
-                int k_max = (kk + BLOCK < N) ? kk + BLOCK : N;
+            for (int jj = 0; jj < P; jj += BLOCK) {
+                int j_max = (jj + BLOCK < P) ? jj + BLOCK : P;
                 
-                // Multiply current blocks: C[ii:i_max][jj:j_max] += 
-                //   A[ii:i_max][kk:k_max] * B[kk:k_max][jj:j_max]
+                // Multiply current blocks
                 for (int i = ii; i < i_max; i++) {
-                    for (int j = jj; j < j_max; j++) {
-                        double sum = matrix_get(C, i, j);
-                        
-                        // Inner loop - process cache-friendly block
-                        for (int k = kk; k < k_max; k++) {
-                            sum += matrix_get(A, i, k) * matrix_get(B, k, j);
+                    for (int k = kk; k < k_max; k++) {
+                        double a_val = a_data[i * a_stride + k];
+                        // Inner loop: j iterates - contiguous access to B[k][j] and C[i][j]
+                        for (int j = jj; j < j_max; j++) {
+                            c_data[i * c_stride + j] += a_val * b_data[k * b_stride + j];
                         }
-                        
-                        matrix_set(C, i, j, sum);
                     }
                 }
             }
