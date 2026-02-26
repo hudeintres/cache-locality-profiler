@@ -14,16 +14,18 @@ include_directories(include)
 
 # Source files
 set(SOURCES
-    src/main.c
     src/matrix.c
     src/profiler.c
+    src/cache_locality.c
 )
 
-# Executable
-add_executable(matrix_profile ${SOURCES})
+# Static Library
+add_library(matrix_profile_lib STATIC ${SOURCES})
+target_link_libraries(matrix_profile_lib m)
 
-# Link math library
-target_link_libraries(matrix_profile m)
+# Executable
+add_executable(matrix_profile src/main.c)
+target_link_libraries(matrix_profile matrix_profile_lib m)
 
 # Set output directory
 set_target_properties(matrix_profile PROPERTIES

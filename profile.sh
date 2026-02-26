@@ -11,16 +11,20 @@ echo "=============================================="
 echo ""
 
 # Check if binary exists
-if [ ! -f "bin/matrix_profile" ]; then
+if [ ! -f "build/matrix_profile" ]; then
     echo "Building project..."
-    make all
+    mkdir -p build
+    cd build
+    cmake ..
+    make
+    cd ..
     echo ""
 fi
 
 # Run the profiler
 echo "Running profiler..."
 echo "----------------------------------------------"
-./bin/matrix_profile
+./build/matrix_profile
 
 # Analyze results if CSV file was created
 if [ -f "profile_results.csv" ]; then
