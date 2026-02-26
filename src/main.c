@@ -129,6 +129,21 @@ int main(int argc, char* argv[]) {
     int sizes[] = {64, 128, 256, 512};
     int num_sizes = sizeof(sizes) / sizeof(sizes[0]);
     
+    // Optional size from command line
+    int extra_size = 0;
+    if (argc > 1) {
+        char* endptr = NULL;
+        long value = strtol(argv[1], &endptr, 10);
+        if (endptr == argv[1] || *endptr != '\0' || value <= 0) {
+            fprintf(stderr, "Invalid size '%s'. Using default sizes only.\n", argv[1]);
+        } else if (value > 4096) {
+            fprintf(stderr, "Requested size %ld too large (max 4096). Using default sizes only.\n", value);
+        } else {
+            extra_size = (int)value;
+            printf("Adding user-specified size: %dx%d\n", extra_size, extra_size);
+        }
+    }
+    
     // Number of iterations for averaging
     int iterations = 3;
     
@@ -139,6 +154,15 @@ int main(int argc, char* argv[]) {
         
         for (int i = 0; i < iterations; i++) {
             test_matrix_multiplication(size, block_size, &profiler);
+        }
+    }
+    
+    if (extra_size > 0) {
+        printf("Testing %dx%d matrix multiplication (%d iterations)...\n", 
+               extra_size, extra_size, iterations);
+        
+        for (int i = 0; i < iterations; i++) {
+            test_matrix_multiplication(extra_size, block_size, &profiler);
         }
     }
     
