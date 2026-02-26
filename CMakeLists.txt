@@ -40,7 +40,7 @@ set_target_properties(matrix_profile_lib_cpp PROPERTIES
 target_link_libraries(matrix_profile_lib_cpp m)
 
 # Executable (C++)
-add_executable(matrix_profile_cpp src/main.c)
+add_executable(matrix_profile_cpp src/main_cpp.cpp)
 set_target_properties(matrix_profile_cpp PROPERTIES
     LINKER_LANGUAGE CXX
 )
