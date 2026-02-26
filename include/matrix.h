@@ -1,6 +1,10 @@
 #ifndef MATRIX_H
 #define MATRIX_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 // Matrix structure
 typedef struct {
     double* data;
@@ -48,5 +52,9 @@ int get_cache_line_size(void);
 // Get L1 data cache size in bytes
 // Returns 32768 (32KB) as default if detection fails
 int get_l1_cache_size(void);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // MATRIX_H

@@ -6,6 +6,10 @@
 #include <time.h>
 #include <string.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define MAX_PROFILE_POINTS 100
 #define MAX_NAME_LEN 64
 
@@ -39,5 +43,9 @@ void profiler_save_results(Profiler* p, const char* filename);
 
 // Get current time in milliseconds
 double get_time_ms(void);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // PROFILER_H
