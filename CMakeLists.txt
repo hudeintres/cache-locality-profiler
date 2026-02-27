@@ -1,11 +1,16 @@
 cmake_minimum_required(VERSION 3.10)
-project(MatrixProfile CXX)
+project(MatrixProfile C CXX)
 
+set(CMAKE_C_STANDARD 99)
+set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Compiler flags
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Wextra -D_POSIX_C_SOURCE=199309L")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -D_POSIX_C_SOURCE=199309L")
+set(CMAKE_C_FLAGS_RELEASE "-O2")
+set(CMAKE_C_FLAGS_DEBUG "-g -O0")
 set(CMAKE_CXX_FLAGS_RELEASE "-O2")
 set(CMAKE_CXX_FLAGS_DEBUG "-g -O0")
 
@@ -13,35 +18,61 @@ set(CMAKE_CXX_FLAGS_DEBUG "-g -O0")
 include_directories(include)
 
 # Source files
-set(SOURCES
+set(SOURCES_C
     src/matrix.c
     src/profiler.c
     src/cache_locality.c
+)
+
+set(SOURCES_CPP
     src/matrix_parallel.cpp
 )
 
-set_source_files_properties(
-    src/matrix.c
-    src/profiler.c
-    src/cache_locality.c
-    PROPERTIES LANGUAGE CXX
+# Static Library (C)
+add_library(matrix_profile_lib STATIC ${SOURCES_C})
+set_target_properties(matrix_profile_lib PROPERTIES
+    LINKER_LANGUAGE C
 )
+target_link_libraries(matrix_profile_lib m)
+
+# Dynamic Library (C)
+add_library(matrix_profile_lib_shared SHARED ${SOURCES_C})
+set_target_properties(matrix_profile_lib_shared PROPERTIES
+    LINKER_LANGUAGE C
+    OUTPUT_NAME matrix_profile
+    POSITION_INDEPENDENT_CODE ON
+)
+target_link_libraries(matrix_profile_lib_shared m)
 
 # Static Library (C++)
-add_library(matrix_profile_lib_cpp STATIC ${SOURCES})
+add_library(matrix_profile_lib_cpp STATIC ${SOURCES_C} ${SOURCES_CPP})
 set_target_properties(matrix_profile_lib_cpp PROPERTIES
     LINKER_LANGUAGE CXX
 )
 target_link_libraries(matrix_profile_lib_cpp m pthread)
 
 # Dynamic Library (C++)
-add_library(matrix_profile_lib_cpp_shared SHARED ${SOURCES})
+add_library(matrix_profile_lib_cpp_shared SHARED ${SOURCES_C} ${SOURCES_CPP})
 set_target_properties(matrix_profile_lib_cpp_shared PROPERTIES
     LINKER_LANGUAGE CXX
-    OUTPUT_NAME matrix_profile
+    OUTPUT_NAME matrix_profile_cpp
     POSITION_INDEPENDENT_CODE ON
 )
 target_link_libraries(matrix_profile_lib_cpp_shared m pthread)
+
+# Executable (C) - uses static library
+add_executable(matrix_profile src/main.c)
+set_target_properties(matrix_profile PROPERTIES
+    LINKER_LANGUAGE C
+)
+target_link_libraries(matrix_profile matrix_profile_lib m)
+
+# Executable (C) - uses dynamic library
+add_executable(matrix_profile_shared src/main.c)
+set_target_properties(matrix_profile_shared PROPERTIES
+    LINKER_LANGUAGE C
+)
+target_link_libraries(matrix_profile_shared matrix_profile_lib_shared m)
 
 # Executable (C++) - uses static library
 add_executable(matrix_profile_cpp src/main_cpp.cpp)
@@ -58,10 +89,10 @@ set_target_properties(matrix_profile_cpp_shared PROPERTIES
 target_link_libraries(matrix_profile_cpp_shared matrix_profile_lib_cpp_shared m pthread)
 
 # Set output directory
-set_target_properties(matrix_profile_cpp matrix_profile_cpp_shared PROPERTIES
+set_target_properties(matrix_profile matrix_profile_shared matrix_profile_cpp matrix_profile_cpp_shared PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
 )
-set_target_properties(matrix_profile_lib_cpp_shared PROPERTIES
+set_target_properties(matrix_profile_lib_shared matrix_profile_lib_cpp_shared PROPERTIES
     LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib
 )
 

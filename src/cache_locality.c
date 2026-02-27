@@ -17,19 +17,28 @@ static void test_matrix_multiplication_internal(int size, int block_size, Profil
     Matrix* C_naive = matrix_create(size, size);
     Matrix* C_transpose = matrix_create(size, size);
     Matrix* C_blocked = matrix_create(size, size);
+#ifdef __cplusplus
     Matrix* C_naive_parallel_t1 = matrix_create(size, size);
     Matrix* C_naive_parallel_t2 = matrix_create(size, size);
     Matrix* C_transpose_parallel_t1 = matrix_create(size, size);
     Matrix* C_transpose_parallel_t2 = matrix_create(size, size);
     Matrix* C_blocked_parallel_t1 = matrix_create(size, size);
     Matrix* C_blocked_parallel_t2 = matrix_create(size, size);
+#endif
     profiler_end(profiler, label);
     
+#ifdef __cplusplus
     if (!A || !B || !C_naive || !C_transpose || !C_blocked || !C_naive_parallel_t1 || !C_naive_parallel_t2 ||
         !C_transpose_parallel_t1 || !C_transpose_parallel_t2 || !C_blocked_parallel_t1 || !C_blocked_parallel_t2) {
         fprintf(stderr, "Failed to allocate matrices\n");
         return;
     }
+#else
+    if (!A || !B || !C_naive || !C_transpose || !C_blocked) {
+        fprintf(stderr, "Failed to allocate matrices\n");
+        return;
+    }
+#endif
     
     // Initialize matrices
     snprintf(label, sizeof(label), "matrix_init_%dx%d", size, size);
@@ -39,12 +48,14 @@ static void test_matrix_multiplication_internal(int size, int block_size, Profil
     matrix_zeros(C_naive);
     matrix_zeros(C_transpose);
     matrix_zeros(C_blocked);
+#ifdef __cplusplus
     matrix_zeros(C_naive_parallel_t1);
     matrix_zeros(C_naive_parallel_t2);
     matrix_zeros(C_transpose_parallel_t1);
     matrix_zeros(C_transpose_parallel_t2);
     matrix_zeros(C_blocked_parallel_t1);
     matrix_zeros(C_blocked_parallel_t2);
+#endif
     profiler_end(profiler, label);
     
     // Perform naive multiplication
@@ -57,6 +68,7 @@ static void test_matrix_multiplication_internal(int size, int block_size, Profil
         fprintf(stderr, "Naive matrix multiplication failed\n");
     }
 
+#ifdef __cplusplus
     // Perform naive multiplication (parallel, 1 thread)
     snprintf(label, sizeof(label), "matrix_multiply_naive_parallel_t1_%dx%d", size, size);
     profiler_start(profiler, label);
@@ -76,6 +88,7 @@ static void test_matrix_multiplication_internal(int size, int block_size, Profil
     if (result_naive_parallel_t2 != 0) {
         fprintf(stderr, "Naive parallel (2 threads) matrix multiplication failed\n");
     }
+#endif
     
     // Perform transpose-optimized multiplication
     snprintf(label, sizeof(label), "matrix_multiply_transpose_%dx%d", size, size);
@@ -87,6 +100,7 @@ static void test_matrix_multiplication_internal(int size, int block_size, Profil
         fprintf(stderr, "Transpose-optimized matrix multiplication failed\n");
     }
 
+#ifdef __cplusplus
     // Perform transpose-optimized multiplication (parallel, 1 thread)
     snprintf(label, sizeof(label), "matrix_multiply_transpose_parallel_t1_%dx%d", size, size);
     profiler_start(profiler, label);
@@ -106,6 +120,7 @@ static void test_matrix_multiplication_internal(int size, int block_size, Profil
     if (result_transpose_parallel_t2 != 0) {
         fprintf(stderr, "Transpose-optimized parallel (2 threads) matrix multiplication failed\n");
     }
+#endif
     
     // Perform cache-blocked multiplication (block_size pre-calculated)
     snprintf(label, sizeof(label), "matrix_multiply_blocked_%dx%d", size, size);
@@ -117,6 +132,7 @@ static void test_matrix_multiplication_internal(int size, int block_size, Profil
         fprintf(stderr, "Cache-blocked matrix multiplication failed\n");
     }
 
+#ifdef __cplusplus
     // Perform cache-blocked multiplication (parallel, 1 thread)
     snprintf(label, sizeof(label), "matrix_multiply_blocked_parallel_t1_%dx%d", size, size);
     profiler_start(profiler, label);
@@ -136,16 +152,19 @@ static void test_matrix_multiplication_internal(int size, int block_size, Profil
     if (result_blocked_parallel_t2 != 0) {
         fprintf(stderr, "Cache-blocked parallel (2 threads) matrix multiplication failed\n");
     }
+#endif
     
     // Sanity check: compare results across methods
     double max_diff_transpose = 0.0;
     double max_diff_blocked = 0.0;
+#ifdef __cplusplus
     double max_diff_naive_parallel_t1 = 0.0;
     double max_diff_naive_parallel_t2 = 0.0;
     double max_diff_transpose_parallel_t1 = 0.0;
     double max_diff_transpose_parallel_t2 = 0.0;
     double max_diff_blocked_parallel_t1 = 0.0;
     double max_diff_blocked_parallel_t2 = 0.0;
+#endif
     for (int i = 0; i < size * size; i++) {
         double naive_val = C_naive->data[i];
         double transpose_val = C_transpose->data[i];
@@ -161,6 +180,7 @@ static void test_matrix_multiplication_internal(int size, int block_size, Profil
             max_diff_blocked = diff_blocked;
         }
 
+#ifdef __cplusplus
         double naive_parallel_t1_val = C_naive_parallel_t1->data[i];
         double naive_parallel_t2_val = C_naive_parallel_t2->data[i];
         double transpose_parallel_t1_val = C_transpose_parallel_t1->data[i];
@@ -193,9 +213,11 @@ static void test_matrix_multiplication_internal(int size, int block_size, Profil
         if (diff_blocked_parallel_t2 > max_diff_blocked_parallel_t2) {
             max_diff_blocked_parallel_t2 = diff_blocked_parallel_t2;
         }
+#endif
     }
     
     const double tolerance = 1e-9;
+#ifdef __cplusplus
     if (max_diff_transpose > tolerance || max_diff_blocked > tolerance ||
         max_diff_naive_parallel_t1 > tolerance || max_diff_naive_parallel_t2 > tolerance ||
         max_diff_transpose_parallel_t1 > tolerance || max_diff_transpose_parallel_t2 > tolerance ||
@@ -206,6 +228,12 @@ static void test_matrix_multiplication_internal(int size, int block_size, Profil
                 max_diff_transpose_parallel_t1, max_diff_transpose_parallel_t2, max_diff_blocked_parallel_t1,
                 max_diff_blocked_parallel_t2);
     }
+#else
+    if (max_diff_transpose > tolerance || max_diff_blocked > tolerance) {
+        fprintf(stderr, "Sanity check failed for size %dx%d: max diff transpose=%.6e, blocked=%.6e\n",
+                size, size, max_diff_transpose, max_diff_blocked);
+    }
+#endif
     
     // Cleanup
     snprintf(label, sizeof(label), "matrix_free_%dx%d", size, size);
@@ -215,12 +243,14 @@ static void test_matrix_multiplication_internal(int size, int block_size, Profil
     matrix_free(C_naive);
     matrix_free(C_transpose);
     matrix_free(C_blocked);
+#ifdef __cplusplus
     matrix_free(C_naive_parallel_t1);
     matrix_free(C_naive_parallel_t2);
     matrix_free(C_transpose_parallel_t1);
     matrix_free(C_transpose_parallel_t2);
     matrix_free(C_blocked_parallel_t1);
     matrix_free(C_blocked_parallel_t2);
+#endif
     profiler_end(profiler, label);
 }
 
@@ -249,7 +279,9 @@ void test_cache_locality_speedup(int size, int iterations, const char* output_fi
     printf("L1 data cache size: %d bytes (%d KB)\n", l1_cache_size, l1_cache_size / 1024);
     printf("Elements per cache line (double): %zu\n", cache_line_size / sizeof(double));
     printf("Optimal block size for tiling: %d x %d\n", block_size, block_size);
+#ifdef __cplusplus
     printf("Threads used for parallel runs: 1 and 2\n\n");
+#endif
     
     printf("Testing %dx%d matrix multiplication (%d iterations)...\n", 
            size, size, iterations);
