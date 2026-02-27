@@ -34,16 +34,35 @@ set_target_properties(matrix_profile_lib_cpp PROPERTIES
 )
 target_link_libraries(matrix_profile_lib_cpp m pthread)
 
-# Executable (C++)
+# Dynamic Library (C++)
+add_library(matrix_profile_lib_cpp_shared SHARED ${SOURCES})
+set_target_properties(matrix_profile_lib_cpp_shared PROPERTIES
+    LINKER_LANGUAGE CXX
+    OUTPUT_NAME matrix_profile
+    POSITION_INDEPENDENT_CODE ON
+)
+target_link_libraries(matrix_profile_lib_cpp_shared m pthread)
+
+# Executable (C++) - uses static library
 add_executable(matrix_profile_cpp src/main_cpp.cpp)
 set_target_properties(matrix_profile_cpp PROPERTIES
     LINKER_LANGUAGE CXX
 )
 target_link_libraries(matrix_profile_cpp matrix_profile_lib_cpp m pthread)
 
+# Executable (C++) - uses dynamic library
+add_executable(matrix_profile_cpp_shared src/main_cpp.cpp)
+set_target_properties(matrix_profile_cpp_shared PROPERTIES
+    LINKER_LANGUAGE CXX
+)
+target_link_libraries(matrix_profile_cpp_shared matrix_profile_lib_cpp_shared m pthread)
+
 # Set output directory
-set_target_properties(matrix_profile_cpp PROPERTIES
+set_target_properties(matrix_profile_cpp matrix_profile_cpp_shared PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
+)
+set_target_properties(matrix_profile_lib_cpp_shared PROPERTIES
+    LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib
 )
 
 # Testing
@@ -62,7 +81,7 @@ add_executable(matrix_test tests/matrix_test.cpp)
 set_target_properties(matrix_test PROPERTIES
     LINKER_LANGUAGE CXX
 )
-target_link_libraries(matrix_test matrix_profile_lib_cpp GTest::gtest_main)
+target_link_libraries(matrix_test matrix_profile_lib_cpp_shared GTest::gtest_main)
 
 include(GoogleTest)
 gtest_discover_tests(matrix_test)
