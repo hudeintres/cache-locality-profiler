@@ -58,10 +58,14 @@ int get_l1_cache_size(void);
 #endif
 
 #ifdef __cplusplus
+extern "C" {
+#endif
 // C++11 concurrent matrix multiplication (row-parallel using std::thread)
 int matrix_multiply_naive_parallel(Matrix* A, Matrix* B, Matrix* C, int num_threads);
 int matrix_multiply_transpose_parallel(Matrix* A, Matrix* B, Matrix* C, int num_threads);
 int matrix_multiply_blocked_parallel(Matrix* A, Matrix* B, Matrix* C, int block_size, int num_threads);
+#ifdef __cplusplus
+}
 #endif
 
 #endif // MATRIX_H

@@ -16,7 +16,7 @@ int normalize_thread_count(int num_threads, int max_rows) {
 }
 }
 
-int matrix_multiply_naive_parallel(Matrix* A, Matrix* B, Matrix* C, int num_threads) {
+extern "C" int matrix_multiply_naive_parallel(Matrix* A, Matrix* B, Matrix* C, int num_threads) {
     if (!A || !B || !C) return -1;
     if (A->cols != B->rows) return -1;
     if (C->rows != A->rows || C->cols != B->cols) return -1;
@@ -59,7 +59,7 @@ int matrix_multiply_naive_parallel(Matrix* A, Matrix* B, Matrix* C, int num_thre
     return 0;
 }
 
-int matrix_multiply_transpose_parallel(Matrix* A, Matrix* B, Matrix* C, int num_threads) {
+extern "C" int matrix_multiply_transpose_parallel(Matrix* A, Matrix* B, Matrix* C, int num_threads) {
     if (!A || !B || !C) return -1;
     if (A->cols != B->rows) return -1;
     if (C->rows != A->rows || C->cols != B->cols) return -1;
@@ -113,7 +113,7 @@ int matrix_multiply_transpose_parallel(Matrix* A, Matrix* B, Matrix* C, int num_
     return 0;
 }
 
-int matrix_multiply_blocked_parallel(Matrix* A, Matrix* B, Matrix* C, int block_size, int num_threads) {
+extern "C" int matrix_multiply_blocked_parallel(Matrix* A, Matrix* B, Matrix* C, int block_size, int num_threads) {
     if (!A || !B || !C) return -1;
     if (A->cols != B->rows) return -1;
     if (C->rows != A->rows || C->cols != B->cols) return -1;
