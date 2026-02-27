@@ -1,0 +1,10 @@
+method,sequential_ms,concurrent_ms,speedup,num_threads
+Naive,19.388,8.881,2.183,2
+Transpose,13.872,6.853,2.024,2
+Blocked,4.513,2.753,1.639,2
+Naive,210.706,59.087,3.566,4
+Transpose,104.873,31.154,3.366,4
+Blocked,39.038,16.177,2.413,4
+Naive,214.018,35.523,6.025,8
+Transpose,100.527,17.104,5.877,8
+Blocked,49.014,10.205,4.803,8

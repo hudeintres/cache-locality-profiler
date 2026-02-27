@@ -228,3 +228,4 @@ int matrix_multiply_blocked(Matrix* A, Matrix* B, Matrix* C, int block_size) {
     
     return 0;
 }
+

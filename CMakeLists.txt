@@ -24,6 +24,10 @@ set(SOURCES
     src/cache_locality.c
 )
 
+set(SOURCES_CPP
+    src/matrix_parallel.cpp
+)
+
 # Static Library (C)
 add_library(matrix_profile_lib STATIC ${SOURCES})
 target_link_libraries(matrix_profile_lib m)
@@ -33,18 +37,18 @@ add_executable(matrix_profile src/main.c)
 target_link_libraries(matrix_profile matrix_profile_lib m)
 
 # Static Library (C++)
-add_library(matrix_profile_lib_cpp STATIC ${SOURCES})
+add_library(matrix_profile_lib_cpp STATIC ${SOURCES} ${SOURCES_CPP})
 set_target_properties(matrix_profile_lib_cpp PROPERTIES
     LINKER_LANGUAGE CXX
 )
-target_link_libraries(matrix_profile_lib_cpp m)
+target_link_libraries(matrix_profile_lib_cpp m pthread)
 
 # Executable (C++)
 add_executable(matrix_profile_cpp src/main_cpp.cpp)
 set_target_properties(matrix_profile_cpp PROPERTIES
     LINKER_LANGUAGE CXX
 )
-target_link_libraries(matrix_profile_cpp matrix_profile_lib_cpp m)
+target_link_libraries(matrix_profile_cpp matrix_profile_lib_cpp m pthread)
 
 # Set output directory
 set_target_properties(matrix_profile matrix_profile_cpp PROPERTIES
